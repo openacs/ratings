@@ -20,8 +20,8 @@ ratings::rate -dimension_key $dimension_key \
     -user_id $user_id \
     -rating $rating
 
-if {![empty_string_p $return_url]} { 
-    ad_returnredirect -message "Your rating is now $rating for this item." $return_url
-} else { 
-    ad_returnredirect -message "Your rating is now $rating for this item" [get_referrer]
+if {[empty_string_p $return_url]} { 
+    set return_url [get_referrer]
 }
+
+ad_returnredirect -message "Your rating is now $rating for this item." $return_url
