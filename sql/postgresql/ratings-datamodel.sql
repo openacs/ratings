@@ -54,9 +54,7 @@ create table ratings (
                         constraint ratings_owner_id_fk
                         references parties(party_id) on delete cascade
                         constraint ratings_owner_id_nn
-                        not null,
-        constraint ratings_un
-        unique (object_id, owner_id, dimension_id) 
+                        not null
 );
 
 comment on table ratings is '
@@ -80,9 +78,15 @@ create table rating_aggregates (
                         references acs_objects(object_id) on delete cascade
                         constraint ratings_object_id_nn
                         not null,
-        ratings         integer,
-        rating_sum      integer,
-        rating_ave      float,
+        all_ratings     integer,
+        all_rating_sum  integer,
+        all_rating_ave  float,
+        anon_ratings    integer,
+        anon_rating_sum integer,
+        anon_rating_ave float,
+        reg_ratings     integer,
+        reg_rating_sum  integer,
+        reg_rating_ave  float,
         rated_on        timestamptz,
         constraint      rating_aggregates_pk
                         primary key (object_id, dimension_id)

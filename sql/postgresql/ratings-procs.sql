@@ -39,9 +39,7 @@ begin
                            p_creation_user,
                            p_creation_ip,
                            p_context_id,
-                           ''t'',
-                           p_title,
-                           p_package_id);
+                           ''t'');
 
     insert into rating_dimensions (dimension_id,dimension_key,description,range_low,range_high,label_low,label_high)
     values (v_dimension_id,p_dimension_key,p_description,p_range_low,p_range_high,p_label_low,p_label_high);
@@ -129,9 +127,7 @@ begin
                            p_creation_user,
                            p_creation_ip,
                            p_context_id,
-                           ''t'',
-                           p_title,
-                           p_package_id);
+                           ''t'');
 
     INSERT INTO ratings (rating_id,dimension_id,object_id,rating,owner_id)
     VALUES (v_rating_id,p_dimension_id,p_object_id,p_rating,p_creation_user);
@@ -192,11 +188,15 @@ declare
     p_context_id                alias for $9;
     v_rating_id                                     ratings.rating_id%TYPE;
 begin
-    SELECT rating_id into v_rating_id
-      FROM ratings
-     WHERE dimension_id = p_dimension_id
-       and object_id = p_object_id
-       and owner_id = p_user;
+    if p_user = 0 then
+        v_rating_id := null;
+    else
+        SELECT rating_id into v_rating_id
+          FROM ratings
+         WHERE dimension_id = p_dimension_id
+           and object_id = p_object_id
+           and owner_id = p_user;
+    end if;
 
     if v_rating_id is null then
         v_rating_id := rating__new(null, p_dimension_id, p_object_id, p_rating, p_title, p_package_id, p_date, p_user, p_ip, p_context_id);
@@ -204,7 +204,6 @@ begin
         UPDATE ratings
            SET rating = p_rating
          WHERE rating_id = v_rating_id;
-
 
         UPDATE acs_objects
            SET last_modified = coalesce(p_date,now()), modifying_user = p_user, modifying_ip = p_ip
@@ -214,4 +213,4 @@ begin
     return v_rating_id;
 end;' language 'plpgsql';
 
-select define_function_args('rating__rate','dimension_id, object_id, rating, title, package_id, rated_on;now(), user_id, ip, context_id');
+select define_function_args('rating__rate','dimension_id,object_id,rating,title,package_id,rated_on;now(),user_id,ip,context_id');

@@ -20,17 +20,39 @@ begin
          WHERE dimension_id = new.dimension_id
            and object_id = new.object_id ) then
 
-        INSERT  INTO rating_aggregates (dimension_id, object_id, ratings, rating_sum, rating_ave, rated_on)
-        VALUES (new.dimension_id, new.object_id, 1, new.rating, new.rating, now());
+        if new.owner_id = 0 then
+            INSERT  INTO rating_aggregates (dimension_id, object_id, all_ratings, all_rating_sum, all_rating_ave, 
+                anon_ratings, anon_rating_sum, anon_rating_ave, reg_ratings, reg_rating_sum, reg_rating_ave, rated_on)
+            VALUES (new.dimension_id, new.object_id, 1, new.rating, new.rating, 
+                0, 0, 0, 1, new.rating, new.rating, now());
+        else
+            INSERT  INTO rating_aggregates (dimension_id, object_id, all_ratings, all_rating_sum, all_rating_ave, 
+                anon_ratings, anon_rating_sum, anon_rating_ave, reg_ratings, reg_rating_sum, reg_rating_ave, rated_on)
+            VALUES (new.dimension_id, new.object_id, 1, new.rating, new.rating, 
+                1, new.rating, new.rating, 0, 0, 0, now());
+        end if;
 
     else
 
-        UPDATE rating_aggregates
-           SET ratings = ratings + 1, rating_sum = rating_sum + new.rating,
-               rating_ave = (rating_sum + new.rating)/(ratings + 1), rated_on = now()
-         WHERE dimension_id = new.dimension_id
-           and object_id = new.object_id;
-
+        if new.owner_id = 0 then
+            UPDATE rating_aggregates
+               SET all_ratings = all_ratings + 1, all_rating_sum = all_rating_sum + new.rating,
+                   all_rating_ave = 1.0*(all_rating_sum + new.rating)/(all_ratings + 1), 
+                   anon_ratings = anon_ratings + 1, anon_rating_sum = anon_rating_sum + new.rating,
+                   anon_rating_ave = 1.0*(anon_rating_sum + new.rating)/(anon_ratings + 1), 
+                   rated_on = now()
+             WHERE dimension_id = new.dimension_id
+               and object_id = new.object_id;
+        else
+            UPDATE rating_aggregates
+               SET all_ratings = all_ratings + 1, all_rating_sum = all_rating_sum + new.rating,
+                   all_rating_ave = 1.0*(all_rating_sum + new.rating)/(all_ratings + 1), 
+                   reg_ratings = reg_ratings + 1, reg_rating_sum = reg_rating_sum + new.rating,
+                   reg_rating_ave = 1.0*(reg_rating_sum + new.rating)/(reg_ratings + 1), 
+                   rated_on = now()
+             WHERE dimension_id = new.dimension_id
+               and object_id = new.object_id;
+        end if;
     end if;
 
     return new;
@@ -43,13 +65,53 @@ execute procedure ratings_ins_tr();
 
 create function ratings_upd_tr () returns opaque as '
 begin
-    UPDATE rating_aggregates
-       SET rating_sum = rating_sum - coalesce(old.rating,1) + coalesce(new.rating,1),
-           rating_ave = (rating_sum - coalesce(old.rating,1) + coalesce(new.rating,1))/ratings,
-           rated_on = now()
-     WHERE dimension_id = new.dimension_id
-       and object_id = new.object_id;
+    -- We first subtract the old, then add the new, in case owner_id, dimension_id or object_id was changed.
 
+    if old.owner_id = 0 then
+        UPDATE rating_aggregates 
+           SET all_ratings = (case when all_ratings > 0 then all_ratings - 1 else 0 end),
+               all_rating_sum = (case when all_rating_sum - coalesce(old.rating,1) > 0 then all_rating_sum - coalesce(old.rating,1) else 0 end),
+               all_rating_ave = 1.0*(all_rating_sum - coalesce(old.rating,1))/(case when all_ratings > 1 then all_ratings - 1 else 1 end),
+               anon_ratings = (case when anon_ratings > 0 then anon_ratings - 1 else 0 end),
+               anon_rating_sum = (case when anon_rating_sum - coalesce(old.rating,1) > 0 then anon_rating_sum - coalesce(old.rating,1) else 0 end),
+               anon_rating_ave = 1.0*(anon_rating_sum - coalesce(old.rating,1))/(case when anon_ratings > 1 then anon_ratings - 1 else 1 end)
+         WHERE dimension_id = old.dimension_id 
+           and object_id = old.object_id;
+    else
+        UPDATE rating_aggregates 
+           SET all_ratings = (case when all_ratings > 0 then all_ratings - 1 else 0 end),
+               all_rating_sum = (case when all_rating_sum - coalesce(old.rating,1) > 0 then all_rating_sum - coalesce(old.rating,1) else 0 end),
+               all_rating_ave = 1.0*(all_rating_sum - coalesce(old.rating,1))/(case when all_ratings > 1 then all_ratings - 1 else 1 end),
+               reg_ratings = (case when reg_ratings > 0 then reg_ratings - 1 else 0 end),
+               reg_rating_sum = (case when reg_rating_sum - coalesce(old.rating,1) > 0 then reg_rating_sum - coalesce(old.rating,1) else 0 end),
+               reg_rating_ave = 1.0*(reg_rating_sum - coalesce(old.rating,1))/(case when reg_ratings > 1 then reg_ratings - 1 else 1 end)
+         WHERE dimension_id = old.dimension_id 
+           and object_id = old.object_id;
+    end if;
+
+    if new.owner_id = 0 then
+        UPDATE rating_aggregates
+           SET all_ratings = all_ratings + 1,
+               all_rating_sum = all_rating_sum + coalesce(new.rating,1),
+               all_rating_ave = 1.0*(all_rating_sum + coalesce(new.rating,1))/(all_ratings + 1),
+               anon_ratings = anon_ratings + 1,
+               anon_rating_sum = anon_rating_sum + coalesce(new.rating,1),
+               anon_rating_ave = 1.0*(anon_rating_sum + coalesce(new.rating,1))/(anon_ratings + 1),
+               rated_on = now()
+         WHERE dimension_id = new.dimension_id
+           and object_id = new.object_id;
+    else        
+        UPDATE rating_aggregates
+           SET all_ratings = all_ratings + 1,
+               all_rating_sum = all_rating_sum + coalesce(new.rating,1),
+               all_rating_ave = 1.0*(all_rating_sum + coalesce(new.rating,1))/(all_ratings + 1),
+               reg_ratings = reg_ratings + 1,
+               reg_rating_sum = reg_rating_sum + coalesce(new.rating,1),
+               reg_rating_ave = 1.0*(reg_rating_sum + coalesce(new.rating,1))/(reg_ratings + 1),
+               rated_on = now()
+         WHERE dimension_id = new.dimension_id
+           and object_id = new.object_id;
+    end if;
     return new;
 
 end;' language 'plpgsql';
@@ -62,12 +124,27 @@ execute procedure ratings_upd_tr();
 -- drop function ratings_del_tr() cascade;
 create function ratings_del_tr () returns opaque as '
 begin
-    UPDATE rating_aggregates 
-       SET ratings = (case when ratings > 0 then ratings - 1 else 0 end),
-           rating_sum = (case when rating_sum - coalesce(old.rating,1) > 0 then rating_sum - coalesce(old.rating,1) else 0 end),
-           rating_ave = (rating_sum - coalesce(old.rating,1))/(case when ratings > 1 then ratings - 1 else 1 end)
-     WHERE dimension_id = old.dimension_id 
-       and object_id = old.object_id;
+    if old.owner_id = 0 then
+        UPDATE rating_aggregates 
+           SET all_ratings = (case when all_ratings > 0 then all_ratings - 1 else 0 end),
+               all_rating_sum = (case when all_rating_sum - coalesce(old.rating,1) > 0 then all_rating_sum - coalesce(old.rating,1) else 0 end),
+               all_rating_ave = 1.0*(all_rating_sum - coalesce(old.rating,1))/(case when all_ratings > 1 then all_ratings - 1 else 1 end),
+               anon_ratings = (case when anon_ratings > 0 then anon_ratings - 1 else 0 end),
+               anon_rating_sum = (case when anon_rating_sum - coalesce(old.rating,1) > 0 then anon_rating_sum - coalesce(old.rating,1) else 0 end),
+               anon_rating_ave = 1.0*(anon_rating_sum - coalesce(old.rating,1))/(case when anon_ratings > 1 then anon_ratings - 1 else 1 end)
+         WHERE dimension_id = old.dimension_id 
+           and object_id = old.object_id;
+    else
+        UPDATE rating_aggregates 
+           SET all_ratings = (case when all_ratings > 0 then all_ratings - 1 else 0 end),
+               all_rating_sum = (case when all_rating_sum - coalesce(old.rating,1) > 0 then all_rating_sum - coalesce(old.rating,1) else 0 end),
+               all_rating_ave = 1.0*(all_rating_sum - coalesce(old.rating,1))/(case when all_ratings > 1 then all_ratings - 1 else 1 end),
+               reg_ratings = (case when reg_ratings > 0 then reg_ratings - 1 else 0 end),
+               reg_rating_sum = (case when reg_rating_sum - coalesce(old.rating,1) > 0 then reg_rating_sum - coalesce(old.rating,1) else 0 end),
+               reg_rating_ave = 1.0*(reg_rating_sum - coalesce(old.rating,1))/(case when reg_ratings > 1 then reg_ratings - 1 else 1 end)
+         WHERE dimension_id = old.dimension_id 
+           and object_id = old.object_id;
+    end if;
 
     return old;
 end;' language 'plpgsql';
