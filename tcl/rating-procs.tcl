@@ -32,10 +32,10 @@ ad_proc -public ratings::aggregates::get {
     set dimension_id $dim(dimension_id)
 
     if { [db_0or1row get_ratings { 
-        SELECT rating_ave, rating_sum, ratings 
-        FROM rating_aggregates 
-        WHERE dimension_id = :dimension_id
-        and object_id = :object_id } -column_array ret] } {
+        SELECT r.*
+        FROM rating_aggregates r
+        WHERE r.dimension_id = :dimension_id
+          and r.object_id = :object_id } -column_array ret] } {
         return [array get ret]
     } else { 
         return {}
