@@ -11,6 +11,7 @@ ad_library {
 namespace eval ratings {}
 namespace eval ratings::aggregates {}
 namespace eval ratings::dimensions {}
+namespace eval ratings::icon {}
 
 ad_proc -public ratings::aggregates::get {
     {-dimension_key "quality"}
@@ -66,19 +67,31 @@ ad_proc -public ratings::get {
 }
 
 
-ad_proc -public ratings::dimensions::get {
-    -dimension_key
+ad_proc -private ratings::dimensions::get_nomem { 
+    dimension_key
 } {
-    Retrieve the dimension data for the given dimension_key
+    Retrieve the dimension data for the given dimension_key.  Not memoized.
 
     @author Jeff Davis davis@xarg.net
     @creation-date 2004-01
 } {
     db_1row get {select * from rating_dimensions where dimension_key = :dimension_key} -column_array ret
+    set ret(icon_key) stars
 
     return [array get ret]
 }
 
+
+ad_proc -public ratings::dimensions::get {
+    -dimension_key
+} {
+    Retrieve the dimension data for the given dimension_key [memoized]
+
+    @author Jeff Davis davis@xarg.net
+    @creation-date 2004-01
+} {
+    return [util_memoize [list ratings::dimensions::get_nomem $dimension_key]]
+}
 
 
 ad_proc -public ratings::form {
@@ -168,8 +181,101 @@ ad_proc -public ratings::rate {
     package_exec_plsql -var_list $vars rating rate
 }
 
-ad_proc -public ratings::icon_base {} {
-    return the base url for the rating icons
+ad_proc -public ratings::icon::get {
+    -icon_key
 } {
-    return /resources/ratings/big/
+    Returns the information for rendering a rating icon
+
+    @param icon_key the string that identifies an icon set (currently stars, lstars, or wp).
+
+    @author Jeff Davis davis@xarg.net
+    @creation-date 2004-05-20
+} {
+    switch -exact -- $icon_key {
+        stars {
+            return {
+                name {Stars}
+                min 0.5
+                max 5.0
+                round 2.0
+                width 64
+                height 12
+                format "%.1f"
+                eval {<image src="/resources/ratings/stars/s-${normalized}.gif" alt="$normalized stars" width="64" height="12" class="rating" />}
+            }
+        }
+        lstars {
+            return {
+                name {Stars}
+                min 0.5
+                max 5.0
+                round 2.0
+                width 77
+                height 17
+                format "%.1f"
+                eval {<image src="/resources/ratings/lstars/s-${normalized}.gif" alt="$normalized stars" width="77" height="17" class="rating" />}
+            }
+        }
+        wp {
+            return {
+                name {Bars}
+                min 0
+                max 9
+                round 1
+                width 100
+                height 10
+                format "%1.0f"
+                eval {<image src="/resources/ratings/wp/${normalized}.gif" alt="rating $normalized" width="64" height="12" class="rating" />}
+            }
+        }
+        default {
+            error "ratings::icon::get: unknown icon_key $icon_key"
+        }
+    }
 }
+
+ad_proc -public ratings::icon::html_fragment {
+    {-dimension_key "quality"}
+    {-icon_key {}}
+    -rating 
+} {
+    return the an html fragment for a rating icon.  
+
+    If dimension key is provided the rating will be normalized to the icon
+    range, if it is not then it will just be used (rounded and clipped if
+    necessary).
+
+    @param dimension_key the rating dimension key
+    @param icon_key overide the default icon key for the given dimension_key
+                    or required if dimension_key not provided.
+
+    @author Jeff Davis davis@xarg.net
+    @creation-date 2004-05-20
+} {
+    if {![empty_string_p $dimension_key]} {
+        array set dim [ratings::dimensions::get -dimension_key $dimension_key]
+    }
+    if {[empty_string_p $icon_key]} {
+        if {[info exists dim(icon_key)]} {
+            set icon_key $dim(icon_key)
+        } else {
+            error "ratings::icon_fragment: provide either icon_key and/or dimension_key"
+        }
+    }
+
+    array set icon [ratings::icon::get -icon_key $icon_key]
+
+    set normalized [format $icon(format) [expr {(round($icon(round)*$rating))/$icon(round)}]]
+    if {$normalized < $icon(min)} {
+        set normalized $icon(min)
+    }
+    if {$normalized > $icon(max)} {
+        set normalized $icon(max)
+    }
+
+    return [subst $icon(eval)]
+}
+
+
+
+
