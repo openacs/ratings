@@ -15,10 +15,10 @@ ad_page_contract {
 
 set user_id [auth::require_login]
 
-ratings::rate -dimension_key $dimension_key \
-    -object_id $object_id \
-    -user_id $user_id \
-    -rating $rating
+set rating_id [ratings::rate -dimension_key $dimension_key \
+                   -object_id $object_id \
+                   -user_id $user_id \
+                   -rating $rating]
 
 if {[empty_string_p $return_url]} { 
     set return_url [get_referrer]

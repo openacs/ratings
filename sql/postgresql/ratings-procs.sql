@@ -199,7 +199,7 @@ begin
        and owner_id = p_user;
 
     if v_rating_id is null then
-        PERFORM rating__new(null, p_dimension_id, p_object_id, p_rating, p_title, p_package_id, p_date, p_user, p_ip, p_context_id);
+        v_rating_id := rating__new(null, p_dimension_id, p_object_id, p_rating, p_title, p_package_id, p_date, p_user, p_ip, p_context_id);
     else
         UPDATE ratings
            SET rating = p_rating

@@ -178,7 +178,7 @@ ad_proc -public ratings::rate {
                   [list ip [ad_conn peeraddr]] \
                  ]
 
-    package_exec_plsql -var_list $vars rating rate
+    return [package_exec_plsql -var_list $vars rating rate]
 }
 
 ad_proc -public ratings::icon::get {
