@@ -1,18 +1,19 @@
 # /packages/ratings/lib/ratings.tcl
 ad_page_contract {
-    Display the ratings for object obj_id as an includelet
+    Display all ratings
 
     @param object_id ratings on this object
     @param owner_id ratings by this user
-    @param user_id the viewing user
-    @param orderby 
     @param admin_p
 
-    @author Jeff Davis (davis@xarg.net)
-    @creation-date 11/12/2003
+} {
+    {object_id ""}
+    {owner_id ""}
+    {admin_p 0}
+}
 
-    @cvs-id $Id$
-} {}
+set page_title "Watch all ratings"
+set context [list $page_title]
 
 if {![empty_string_p $object_id]} {
     append clause "and r.object_id = :object_id\n"
@@ -23,7 +24,7 @@ if {![empty_string_p $owner_id]} {
 }
 
 if {[empty_string_p "$owner_id$object_id"]} {
-    ad_return_complaint 1 [list "No object or person given"]
+    append clause ""
 }
 
 set elements {
@@ -45,16 +46,19 @@ lappend elements rated {
     display_template {@ratings.rated;noquote@}
 }
 
-if {![empty_string_p $object_id]} {
-    lappend elements object_title {
-        label {Item}
-        display_template {<a href="/o/@ratings.object_id@">@ratings.object_title@</a> (<a href="@ratings.object_ratings_url@">ratings</a>)}
-    }
+lappend elements object_title {
+    label {Item}
+    display_template {<a href="/o/@ratings.object_id@">@ratings.object_title@</a> (<a href="@ratings.object_ratings_url@">ratings</a>)}
 }
 
-lappend elements dimension {
-    label { Dimension }
-    display_template {@ratings.description@ }
+lappend elements dimension_title {
+    label { Dimension Title: }
+    display_template {@ratings.dimension_title@ }
+}
+
+lappend elements dimension_description {
+    label {Dimension Description: }
+    display_template {@ratings.dimension_description@ }
 }
 
 if { 0 } { 
@@ -99,7 +103,7 @@ template::list::create \
 
 set now [clock_to_ansi [clock seconds]]
 db_multirow -extend {rated rating_img user_url user_ratings_url object_ratings_url url_one} ratings ratings "
-    SELECT r.rating_id, r.dimension_id, rd.description, u.first_names || ' ' || u.last_name as name, u.user_id, u.email, r.owner_id, r.rating, to_char(o.last_modified,'YYYY-MM-DD HH24:MI:SS') as rated_on, acs_object__name(o2.object_id) as object_title, r.object_id, o2.title as obj_title, o2.object_type
+    SELECT r.rating_id, r.dimension_id, r.object_id, rd.description as dimension_description, rd.title as dimension_title, u.first_names || ' ' || u.last_name as name, u.user_id, u.email, r.owner_id, r.rating, to_char(o.last_modified,'YYYY-MM-DD HH24:MI:SS') as rated_on, acs_object__name(o2.object_id) as object_title, r.object_id, o2.title as obj_title, o2.object_type
       FROM acs_users_all u,  ratings r, acs_objects o, acs_objects o2, rating_dimensions rd
      WHERE r.owner_id = u.user_id 
        $clause

@@ -11,3 +11,4 @@
 -- http://www.fsf.org/copyleft/gpl.html
 
 select rating_dimension__new ('Quality','quality','Overall rating of an item.',1,5,'','best');
+

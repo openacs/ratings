@@ -156,16 +156,22 @@ ad_proc -public ratings::form {
 
 ad_proc -public ratings::rate {
     {-dimension_key "quality"}
-    -object_id
-    -user_id
-    -rating
+    -object_id:required
+    -user_id:required
+    -rating:required
+    {-nomem_p "f"}
 } {
     Sets the rating for object_id for user user_id.
 
     @author Jeff Davis davis@xarg.net
     @creation-date 2004-01-30
 } {
-    array set dim [ratings::dimensions::get -dimension_key $dimension_key]
+    if { $nomem_p } {
+	array set dim [ratings::dimensions::get_nomem $dimension_key]
+    } else {
+	array set dim [ratings::dimensions::get -dimension_key $dimension_key]
+    }
+
     set dimension_id $dim(dimension_id)
 
     set vars [list \
@@ -279,3 +285,110 @@ ad_proc -public ratings::icon::html_fragment {
 
 
 
+ad_proc -public ratings::dimension_form { 
+    -object_id:required
+    {-dimensions_key_list ""}
+    {-return_url ""}
+    {-context_object_id ""}
+} {
+    Returns a form to include on an adp page, displaying a group of stars with a checkbox acording to the max and
+    min ranges especified when creating the dimension. If dimension_key_list is not provided then it will create a form
+    with all dimensions. If it is provided then it will create a form for just the dimension_key's on the list. 
+
+    @param object_id The object you want to rate.
+    @param dimension_key_list the rating dimension_key's.
+    @param return_url The url to return after the form is submited.
+    @param context_object_id The context object to group ratings.
+
+} {
+    set output ""
+    set dimensions_num [llength $dimensions_key_list]
+    # For each dimension we receive, we are going to use it's value to restrict the query
+    if { [expr [llength $dimensions_key_list] > 1] } {
+	set dimensions_query "("
+	foreach item $dimensions_key_list {
+	    append dimensions_query "'"
+	    append dimensions_query "$item',"
+	}
+	append dimensions_query "'[lindex $dimensions_key_list 0]')"
+	set extra_query "where dimension_key in $dimensions_query"
+    } elseif {[string equal [llength $dimensions_key_list] 1] } {
+	set extra_query "where dimension_key = '$dimensions_key_list'"
+    } else {
+	set extra_query ""
+    }
+    
+    set dimensions ""
+    db_foreach get_dimensions " " {
+	append dimensions "${dimension_key}-"
+    }
+
+    append output "<input type=\"hidden\" name=\"rating_element\" value=\"$dimensions\">"
+    set count 0
+    # For each dimension we create a new form to rate all dimensions.
+    append output "<table><tr>"
+    db_foreach get_dimensions " " {
+	append output "<form name=\"rate_dimensions_$count\" action=\"/ratings/rate\">"
+	append output "<td valign=top>"
+	append output "<input type=\"hidden\" name=\"dimension_key\" value=\"$dimension_key\">"
+	append output "<input type=\"hidden\" name=\"object_id\" value=\"$object_id\">"
+	append output "<input type=\"hidden\" name=\"context_object_id\" value=\"$context_object_id\">"
+	append output "<input type=\"hidden\" name=\"nomem_p\" value=\"t\">"
+	append output "<b>${title}:</b><br><br>"
+	# We create the options using the values specified when the dimension was created.
+	for { set i $range_low } { $i <= $range_high } { incr i } {
+	    append output "<input type=\"radio\" name=\"rating\" value=\"$i\">"
+	    append output "[ratings::icon::html_fragment -icon_key stars -rating $i]<br>"
+	}
+	append output "<br><input type=\"Submit\" value=\"Rate\"></form>"
+	append output "</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td>"
+	incr count
+    }
+    append output "</tr></table>"
+    return $output
+}
+
+ad_proc -public ratings::get_list {
+    {-context_object_id ""}
+    -object_id:required
+} {
+    Returns a list of elements of the form { rating_id value } for one object_id. If context_object_id
+    was provided then retursn the pairs in that context_id, else, it returns all pairs for
+    that object_id.
+
+    @param context_object_id The object_id that groups diferent ratings.
+    @param object_id The object_id that was rated.
+    @return the list { rating_id value } for the object_id.
+
+    @author Miguel Marin  (miguelmarin@viaro.net)
+    @creation-date 2005-07-29
+} {
+    set extra_query ""
+    if { ![empty_string_p $context_object_id] } {
+	set extra_query "and context_object_id = $context_object_id"
+    }
+    return [db_list_of_lists get_rating_id " "]
+}
+
+ad_proc -public ratings::get_average {
+    -context_object_id:required
+    -object_id:required
+    {-dimension_key ""}
+} {
+    Returns the average rating for one on the same context_object_id and object_id. If dimension_key is specified
+    then returns only the average for that dimension.
+
+    @param context_object_id The object_id that groups diferent ratings.
+    @param object_id The object_id that was rated.
+    @param dimension_key The dimension to get the average.
+    @returns a average rating value.
+
+    @author Miguel Marin  (miguelmarin@viaro.net)
+    @creation-date 2005-07-29
+} {
+    set extra_query ""
+    if { ![empty_string_p $dimension_key] } {
+	set extra_query "and dimension_id = ( select dimension_id from rating_dimensions where dimension_key = '$dimension_key' )"
+    }
+    return [db_string get_average_rating " "]
+}
