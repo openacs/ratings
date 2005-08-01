@@ -331,14 +331,25 @@ ad_proc -public ratings::dimension_form {
 	append output "<b>${title}:</b><br><br>"
 	# We create the options using the values specified when the dimension was created.
 	for { set i $range_low } { $i <= $range_high } { incr i } {
-	    append output "<input type=\"radio\" name=\"${dimension_key}-${object_id}\" value=\"$i\""
+	    append output "<input type=\"radio\" name=\"rating\" value=\"$i\""
 	    set prev_rating [ratings::get_rating -object_id $object_id -dimension_key $dimension_key]
 	    if { [string equal $i $prev_rating] } {
 		append output " checked>"
 	    } else {
 		append output ">"		
-	    }	
-	    append output "[ratings::icon::html_fragment -icon_key stars -rating $i]<br>"
+	    }	 
+	    set range_div [expr $i / 5]
+	    if { ![string equal $range_div 0] } {
+		for { set j 0 } { $j < [expr $i / 5] } { incr j } {
+		    append output "[ratings::icon::html_fragment -icon_key stars -rating 5]"
+		}
+		set mod_range [expr $i % 5]
+		if { ![string equal $mod_range 0] } {
+		    append output "[ratings::icon::html_fragment -icon_key stars -rating $mod_range]<br>"   
+		}
+	    } else {
+		append output "[ratings::icon::html_fragment -icon_key stars -rating $i]<br>"
+	    }
 	}
 	append output "<br><input type=\"Submit\" value=\"Rate\"></form>"
 	append output "</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td>"
@@ -376,7 +387,20 @@ ad_proc -public ratings::dimension_ad_form_element {
 
     db_1row get_dimension_info { }
     for { set i $range_low } { $i <= $range_high } { incr i } {
-	append element "{{[ratings::icon::html_fragment -icon_key stars -rating $i]} $i } "
+	set range_div [expr $i / 5]
+	if { ![string equal $range_div 0] } {
+	    append element "{{"
+	    for { set j 0 } { $j < [expr $i / 5] } { incr j } {
+		append element "[ratings::icon::html_fragment -icon_key stars -rating 5]"
+	    }
+	    set mod_range [expr $i % 5]
+	    if { ![string equal $mod_range 0] } {
+		append element "[ratings::icon::html_fragment -icon_key stars -rating $mod_range]"
+	    }
+	    append element "} $i } "
+	} else {
+	    append element "{{[ratings::icon::html_fragment -icon_key stars -rating $i]} $i } "
+	}
     }
     # This Close the options
     append element "}} "
