@@ -282,9 +282,6 @@ ad_proc -public ratings::icon::html_fragment {
     return [subst $icon(eval)]
 }
 
-
-
-
 ad_proc -public ratings::dimension_form { 
     -object_id:required
     {-dimensions_key_list ""}
@@ -300,6 +297,8 @@ ad_proc -public ratings::dimension_form {
     @param return_url The url to return after the form is submited.
     @param context_object_id The context object to group ratings.
 
+    @author Miguel Marin  (miguelmarin@viaro.net)
+    @creation-date 2005-07-29
 } {
     set output ""
     set dimensions_num [llength $dimensions_key_list]
@@ -318,26 +317,27 @@ ad_proc -public ratings::dimension_form {
 	set extra_query ""
     }
     
-    set dimensions ""
-    db_foreach get_dimensions " " {
-	append dimensions "${dimension_key}-"
-    }
-
-    append output "<input type=\"hidden\" name=\"rating_element\" value=\"$dimensions\">"
     set count 0
     # For each dimension we create a new form to rate all dimensions.
     append output "<table><tr>"
     db_foreach get_dimensions " " {
-	append output "<form name=\"rate_dimensions_$count\" action=\"/ratings/rate\">"
+	append output "<form name=\"rate_dimensions_$count\" action=\"/ratings/rate\" method=\"post\">"
 	append output "<td valign=top>"
 	append output "<input type=\"hidden\" name=\"dimension_key\" value=\"$dimension_key\">"
 	append output "<input type=\"hidden\" name=\"object_id\" value=\"$object_id\">"
 	append output "<input type=\"hidden\" name=\"context_object_id\" value=\"$context_object_id\">"
 	append output "<input type=\"hidden\" name=\"nomem_p\" value=\"t\">"
+	append output "<input type=\"hidden\" name=\"return_url\" value=\"$return_url\">"
 	append output "<b>${title}:</b><br><br>"
 	# We create the options using the values specified when the dimension was created.
 	for { set i $range_low } { $i <= $range_high } { incr i } {
-	    append output "<input type=\"radio\" name=\"rating\" value=\"$i\">"
+	    append output "<input type=\"radio\" name=\"${dimension_key}-${object_id}\" value=\"$i\""
+	    set prev_rating [ratings::get_rating -object_id $object_id -dimension_key $dimension_key]
+	    if { [string equal $i $prev_rating] } {
+		append output " checked>"
+	    } else {
+		append output ">"		
+	    }	
 	    append output "[ratings::icon::html_fragment -icon_key stars -rating $i]<br>"
 	}
 	append output "<br><input type=\"Submit\" value=\"Rate\"></form>"
@@ -349,12 +349,66 @@ ad_proc -public ratings::dimension_form {
     return $output
 }
 
+ad_proc -public ratings::dimension_ad_form_element { 
+    -object_id:required
+    -dimension_key:required
+    {-label ""}
+    {-section ""}
+} {
+    Returns an element to use on ad_form with the -extend switch, displaying a group of stars with a radio button
+    acording to the max and  min ranges especified when creating the dimension. The name of the element will be
+    object_id.dimension_key.
+
+    @param object_id The object you want to rate.
+    @param dimension_key the rating dimension_key's.
+    @param label The label of the element. Default to Dimension Title
+    @param section The section of the element. Default to ""
+
+    @author Miguel Marin (miguelmarin@viaro.net)
+    @creation-date 2005-08-01
+} {
+   
+    set element "{$object_id"
+    append element ".$dimension_key:text(radio) "
+    append element "{label $label} "
+    append element "{section $section} "
+    append element "{options {"
+
+    db_1row get_dimension_info { }
+    for { set i $range_low } { $i <= $range_high } { incr i } {
+	append element "{{[ratings::icon::html_fragment -icon_key stars -rating $i]} $i } "
+    }
+    # This Close the options
+    append element "}} "
+
+    # Select the element value, if it has one
+    append element "{ value [ratings::get_rating -object_id $object_id -dimension_key $dimension_key]} "
+
+    # This Close the element
+    append element "}"
+
+    return $element
+}
+
+ad_proc -public ratings::get_available_dimensions {
+    
+} {
+    Returns a list of all available dimensions of the form { dimension_key title }.
+    All dimensions_key in rating_dimensions table.
+
+    @author Miguel Marin  (miguelmarin@viaro.net)
+    @creation-date 2005-08-01
+} {
+    return [db_list_of_lists get_all_dimensions { }]
+}
+
+
 ad_proc -public ratings::get_list {
     {-context_object_id ""}
     -object_id:required
 } {
     Returns a list of elements of the form { rating_id value } for one object_id. If context_object_id
-    was provided then retursn the pairs in that context_id, else, it returns all pairs for
+    was provided then returns the pairs in that context_id, else, it returns all pairs for
     that object_id.
 
     @param context_object_id The object_id that groups diferent ratings.
@@ -396,4 +450,26 @@ ad_proc -public ratings::get_average {
     }
 
     return [db_string get_average_rating " "]
+}
+
+
+ad_proc -public ratings::get_rating {
+    -object_id:required
+    -dimension_key:required
+    {-owner_id ""}
+} {
+    Returns the rate for one object_id made by the owner_id for one dimension_key, empty string other wise.
+
+    @param object_id The object that was rated.
+    @param dimension_key The dimension key used for rate the object.
+    @param owner_id The id of the user that rated the object_id. Default to logged user
+    @returns the rating for that object_id
+
+    @author Miguel Marin  (miguelmarin@viaro.net)
+    @creation-date 2005-08-01
+} {
+    if { [empty_string_p $owner_id] } {
+	set owner_id [ad_conn user_id]
+    }
+    return [db_string get_rating { } -default ""]
 }
