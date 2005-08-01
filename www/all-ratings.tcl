@@ -111,7 +111,7 @@ db_multirow -extend {rated rating_img user_url user_ratings_url object_ratings_u
        and o2.object_id = r.object_id
        and r.dimension_id = rd.dimension_id
    [template::list::orderby_clause -orderby -name "ratings"]" {
-       set rating_img [ratings::icon::html_fragment -rating $rating]
+       set rating_img [ratings::icon::get_icon -rating $rating]
        set user_url [acs_community_member_url -user_id $user_id]     
        set user_ratings_url [export_vars -base ratings [list [list owner_id $user_id]]]
        set object_ratings_url [export_vars -base ratings {object_id}]

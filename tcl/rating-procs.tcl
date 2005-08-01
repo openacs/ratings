@@ -338,18 +338,7 @@ ad_proc -public ratings::dimension_form {
 	    } else {
 		append output ">"		
 	    }	 
-	    set range_div [expr $i / 5]
-	    if { ![string equal $range_div 0] } {
-		for { set j 0 } { $j < [expr $i / 5] } { incr j } {
-		    append output "[ratings::icon::html_fragment -icon_key stars -rating 5]"
-		}
-		set mod_range [expr $i % 5]
-		if { ![string equal $mod_range 0] } {
-		    append output "[ratings::icon::html_fragment -icon_key stars -rating $mod_range]<br>"   
-		}
-	    } else {
-		append output "[ratings::icon::html_fragment -icon_key stars -rating $i]<br>"
-	    }
+	    append output "[ratings::icon::html_fragment -icon_key stars -rating $i]<br>"
 	}
 	append output "<br><input type=\"Submit\" value=\"Rate\"></form>"
 	append output "</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td>"
@@ -387,20 +376,7 @@ ad_proc -public ratings::dimension_ad_form_element {
 
     db_1row get_dimension_info { }
     for { set i $range_low } { $i <= $range_high } { incr i } {
-	set range_div [expr $i / 5]
-	if { ![string equal $range_div 0] } {
-	    append element "{{"
-	    for { set j 0 } { $j < [expr $i / 5] } { incr j } {
-		append element "[ratings::icon::html_fragment -icon_key stars -rating 5]"
-	    }
-	    set mod_range [expr $i % 5]
-	    if { ![string equal $mod_range 0] } {
-		append element "[ratings::icon::html_fragment -icon_key stars -rating $mod_range]"
-	    }
-	    append element "} $i } "
-	} else {
-	    append element "{{[ratings::icon::html_fragment -icon_key stars -rating $i]} $i } "
-	}
+	    append element "{{[ratings::icon::get_icon -icon_key stars -rating $i]} $i } "
     }
     # This Close the options
     append element "}} "
@@ -476,6 +452,32 @@ ad_proc -public ratings::get_average {
     return [db_string get_average_rating " "]
 }
 
+ad_proc -public ratings::icon::get_icon {
+    {-dimension_key ""}
+    {-icon_key {}}
+    -rating
+} {
+    Returns any number of icons using the ratings::icon::html_fragment proc.
+    
+    @param icon_key  One of the following stars, lstarts or wp
+    @param rating rate number
+    @param dimension_key The name of the dimension
+} {
+    set icons ""
+    set range_div [expr $rating / 5]
+    if { ![string equal $range_div 0] } {
+	for { set j 0 } { $j < [expr $rating / 5] } { incr j } {
+	    append icons "[ratings::icon::html_fragment -dimension_key $dimension_key -icon_key stars -rating 5]"
+	}
+	set mod_range [expr $rating % 5]
+	if { ![string equal $mod_range 0] } {
+	    append icons "[ratings::icon::html_fragment -dimension_key $dimension_key -icon_key stars -rating $mod_range]"
+	}
+    } else {
+	append icons "[ratings::icon::html_fragment -dimension_key $dimension_key -icon_key stars -rating $rating]"
+    }
+    return $icons
+}
 
 ad_proc -public ratings::get_rating {
     -object_id:required
