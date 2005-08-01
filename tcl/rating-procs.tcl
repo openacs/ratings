@@ -344,6 +344,7 @@ ad_proc -public ratings::dimension_form {
 	append output "</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td>"
 	incr count
     }
+
     append output "</tr></table>"
     return $output
 }
@@ -371,7 +372,7 @@ ad_proc -public ratings::get_list {
 }
 
 ad_proc -public ratings::get_average {
-    -context_object_id:required
+    {-context_object_id ""}
     -object_id:required
     {-dimension_key ""}
 } {
@@ -388,7 +389,11 @@ ad_proc -public ratings::get_average {
 } {
     set extra_query ""
     if { ![empty_string_p $dimension_key] } {
-	set extra_query "and dimension_id = ( select dimension_id from rating_dimensions where dimension_key = '$dimension_key' )"
+	append extra_query "and dimension_id = ( select dimension_id from rating_dimensions where dimension_key = '$dimension_key' )"
     }
+    if { ![empty_string_p $context_object_id] } {
+	append extra_query "and context_object_id = :context_object_id"
+    }
+
     return [db_string get_average_rating " "]
 }

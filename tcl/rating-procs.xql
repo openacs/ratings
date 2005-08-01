@@ -32,8 +32,6 @@
 		ratings
 	where
 		object_id = :object_id
-	and	
-		context_object_id = :context_object_id
 	$extra_query
    </querytext>
 </fullquery>
