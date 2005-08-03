@@ -14,14 +14,14 @@
 <fullquery name="ratings::dimension_ad_form_element.get_dimension_info">
    <querytext>
 	select
-		range_low,
-		range_high
+		* 
 	from 
 		rating_dimensions
-	where
+	where 
 		dimension_key = :dimension_key
    </querytext>
 </fullquery>
+
 
 <fullquery name="ratings::get_available_dimensions.get_all_dimensions">
    <querytext>
