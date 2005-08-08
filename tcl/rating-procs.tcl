@@ -354,10 +354,11 @@ ad_proc -public ratings::dimension_ad_form_element {
     -dimension_key:required
     {-label ""}
     {-section ""}
+    {-show_stars_p "t"}
 } {
-    Returns an element to use on ad_form with the -extend switch, displaying a group of stars with a radio button
-    acording to the max and  min ranges especified when creating the dimension. The name of the element will be
-    object_id.dimension_key.
+    Returns an element to use on ad_form with the -extend switch, displaying a group of stars if show_stars_p is true, 
+    with a radio button acording to the max and  min ranges especified when creating the dimension. 
+    The name of the element will be object_id.dimension_key.
 
     @param object_id The object you want to rate.
     @param dimension_key the rating dimension_key's.
@@ -376,7 +377,12 @@ ad_proc -public ratings::dimension_ad_form_element {
 
     db_1row get_dimension_info { }
     for { set i $range_low } { $i <= $range_high } { incr i } {
+	if { $show_stars_p } {
+	    # Getting the stars
 	    append element "{{[ratings::icon::get_icon -icon_key stars -rating $i]} $i } "
+	} else {
+	    append element "{ $i $i} "
+	} 
     }
     # This Close the options
     append element "}} "
