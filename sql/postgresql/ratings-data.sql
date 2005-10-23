@@ -10,5 +10,5 @@
 -- License.  Full text of the license is available from the GNU Project:
 -- http://www.fsf.org/copyleft/gpl.html
 
-select rating_dimension__new ('Quality','quality','Overall rating of an item.',1,5,'','best');
+select rating_dimension__new ('#ratings.Quality#','quality','#ratings.quality_desc#',1,5,'','best');
 

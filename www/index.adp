@@ -1,7 +1,7 @@
 <master>
-<property name="title">Ratings</property>
+<property name="title">#ratings.Ratings#</property>
 
 <ul>
-  <li><a href="add-dimension">Add a new Dimension</a>
-  <li><a href="all-ratings">Watch all Ratings</a>
+  <li><a href="add-dimension">#ratings.Add_a_new_Dimension_1#</a>
+  <li><a href="all-ratings">#ratings.Watch_all_Ratings#</a>
 </ul>

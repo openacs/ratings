@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<message_catalog package_key="ratings" package_version="0.1d1" locale="en_US" charset="ISO-8859-1">
+
+  <msg key="Add_a_new_Dimension">Add a new Dimension:</msg>
+  <msg key="Add_a_new_Dimension_1">Add a new Dimension</msg>
+  <msg key="All_Dimensions">All Dimensions:</msg>
+  <msg key="Quality">Quality</msg>
+  <msg key="quality_desc">Overall rating of an item.</msg>
+  <msg key="Ratings">Ratings</msg>
+  <msg key="Watch_all_Ratings">Watch all Ratings</msg>
+</message_catalog>
