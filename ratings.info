@@ -10,12 +10,13 @@
 
     <version name="0.1d1" url="http://openacs.org/repository/download/apm/ratings-0.1d1.apm">
         <owner url="mailto:davis@xarg.net">Jeff Davis</owner>
+        <owner url="mailto:openacs@sussdorff.de">Malte Sussdorff</owner>
         <summary>Multidimensional ratings on arbitrary acs_objects.</summary>
         <vendor url="http://xarg.net">Xarg</vendor>
         <description format="text/html">Support for rating objects, with trigger maintained summary data.</description>
         <license>GPL</license>
         <license_url>http://www.gnu.org/copyleft/gpl.html</license_url>
-        <maturity>0</maturity>
+        <maturity>1</maturity>
 
         <provides url="ratings" version="0.1d1"/>
 
