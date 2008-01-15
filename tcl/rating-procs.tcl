@@ -130,7 +130,7 @@ ad_proc -public ratings::form {
         set return_url [ad_return_url]
     }
 
-    set out "<form style=\"display: inline\" action=\"/ratings/rate\">\n[export_vars -form {object_id dimension_key return_url}]<select name=\"rating\">\n"
+    set out "<form class=\"inline-form\" action=\"/ratings/rate\">\n[export_vars -form {object_id dimension_key return_url}]<div><select name=\"rating\">\n"
     for {set i $dim(range_low)} {$i <= $dim(range_high) && $dim(range_high) != $dim(range_low)} {incr i [expr {2*($dim(range_high) - $dim(range_low) > 0)-1}]} {
         if {$rating eq $i} {
             append out "<option value=\"$i\" selected=\"selected\">"
@@ -147,9 +147,9 @@ ad_proc -public ratings::form {
         append out "</option>\n"
     }
     if {![empty_string_p $rating]} { 
-        append out "\n</select>\n<input type=\"submit\" value=\"Change\"></form>\n"
+        append out "\n</select></div>\n<div><input type=\"submit\" value=\"Change\"></div></form>\n"
     } else {
-        append out "\n</select>\n<input type=\"submit\" value=\"Rate\"></form>\n"
+        append out "\n</select></div>\n<div><input type=\"submit\" value=\"Rate\"></div></form>\n"
     }
 }
 
@@ -201,7 +201,7 @@ ad_proc -public ratings::icon::get {
                 width 64
                 height 12
                 format "%.1f"
-                eval {<image src="/resources/ratings/stars/s-${normalized}.gif" alt="$normalized stars" width="64" height="12" class="rating" />}
+                eval {<img src="/resources/ratings/stars/s-${normalized}.gif" alt="$normalized stars" width="64" height="12" class="rating">}
             }
         }
         lstars {
