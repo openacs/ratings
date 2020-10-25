@@ -12,7 +12,7 @@
 -- License.  Full text of the license is available from the GNU Project:
 -- http://www.fsf.org/copyleft/gpl.html
 
-create function ratings_ins_tr () returns opaque as '
+create function ratings_ins_tr () returns trigger as '
 begin
     if not exists (
         SELECT 1
@@ -63,7 +63,7 @@ after insert on ratings
 for each row
 execute procedure ratings_ins_tr();
 
-create function ratings_upd_tr () returns opaque as '
+create function ratings_upd_tr () returns trigger as '
 begin
     -- We first subtract the old, then add the new, in case owner_id, dimension_id or object_id was changed.
 
@@ -122,7 +122,7 @@ for each row
 execute procedure ratings_upd_tr();
 
 -- drop function ratings_del_tr() cascade;
-create function ratings_del_tr () returns opaque as '
+create function ratings_del_tr () returns trigger as '
 begin
     if old.owner_id = 0 then
         UPDATE rating_aggregates 
